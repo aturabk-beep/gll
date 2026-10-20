@@ -1,0 +1,10 @@
+.tools/
+mobile/
+artifacts/
+.git/
+**/node_modules/
+**/dist/
+**/.env
+**/.env.local
+**/.env.*
+**/*.log

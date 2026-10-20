@@ -1,0 +1,13 @@
+import {spawnSync} from 'node:child_process';
+import {writeFileSync,mkdirSync} from 'node:fs';
+const adb=process.env.LOCALAPPDATA+'/Android/Sdk/platform-tools/adb.exe';
+const call=(args)=>{const r=spawnSync(adb,args,{maxBuffer:20*1024*1024});if(r.status!==0)throw Error(r.stderr.toString());return r.stdout;};
+const focus=call(['shell','dumpsys','window']).toString().split('\n').find(x=>x.includes('mCurrentFocus'))??'';
+if(!focus.includes('tr.com.gulel.gulel_personnel'))throw Error('Personnel app is not foreground; screenshot skipped.');
+const pid=call(['shell','pidof','tr.com.gulel.gulel_personnel']).toString().trim();
+if(!pid)throw Error('Pilot process is not running');
+const log=call(['logcat','-d','--pid='+pid,'-t','200']).toString();
+if(log.includes('FATAL EXCEPTION')||log.includes('Unhandled Exception'))throw Error('App exception detected');
+mkdirSync('artifacts',{recursive:true});
+writeFileSync('artifacts/s23-setup.png',call(['exec-out','screencap','-p']));
+console.log('Physical S23 smoke PASS: app foreground, process alive, no fatal/unhandled exception in inspected app log, setup screenshot captured. No location/background field test performed.');

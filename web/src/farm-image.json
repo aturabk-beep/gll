@@ -1,0 +1,34 @@
+{
+  "image": "/maps/ciftlik.png",
+  "width": 2558,
+  "height": 2296,
+  "referenceWidth": 1400,
+  "referenceHeight": 1400,
+  "extent": {
+    "xmin": 3375373.940088244,
+    "ymin": 4449341.287766254,
+    "xmax": 3376353.5516072246,
+    "ymax": 4450320.899285234,
+    "spatialReference": {
+      "wkid": 102100,
+      "latestWkid": 3857
+    }
+  },
+  "matrix": [
+    0.8722095107731654,
+    -0.00690000380354963,
+    -306.1322258218373,
+    0.005460882132627703,
+    0.8651993392100334,
+    45.2431453752301,
+    0.000009174068360876944,
+    -0.0000036589199733402673,
+    1
+  ],
+  "alignment": {
+    "inliers": 34,
+    "rmsReferencePixels": 2.089922993913436,
+    "reference": "Esri World Imagery",
+    "method": "SIFT matches with RANSAC homography"
+  }
+}

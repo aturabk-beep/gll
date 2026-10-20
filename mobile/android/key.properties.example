@@ -1,0 +1,4 @@
+storeFile=/ABSOLUTE/PATH/TO/COMPANY-upload.jks
+storePassword=SET_LOCALLY_DO_NOT_COMMIT
+keyAlias=upload
+keyPassword=SET_LOCALLY_DO_NOT_COMMIT

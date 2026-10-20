@@ -1,0 +1,13 @@
+.git
+.tools
+artifacts
+mobile
+**/node_modules
+**/dist
+**/.env
+**/.env.local
+**/.env.*
+**/tests
+**/*.test.*
+**/*.log
+supabase

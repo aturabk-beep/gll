@@ -1,0 +1,2 @@
+// Read Flutter version values without importing Flutter linker flags/plugins.
+#include "../Flutter/Generated.xcconfig"
