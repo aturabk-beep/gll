@@ -10,6 +10,11 @@ import type {Camera} from './cameras';
 const testBounds=L.latLngBounds([39.89885,32.77261],[39.90107,32.77481]);
 const farmBounds=L.latLngBounds([farmImageBounds.south,farmImageBounds.west],[farmImageBounds.north,farmImageBounds.east]);
 let gradientId=0;
+// The Locations screen floats the staff list over the map's left edge (CSS --map-inset); keep fitted and focused content clear of it.
+const inset=(m:L.Map)=>parseFloat(getComputedStyle(m.getContainer()).getPropertyValue('--map-inset'))||0;
+const fitVisible=(m:L.Map,bounds:L.LatLngBounds,pad:number,maxZoom?:number)=>m.fitBounds(bounds,{paddingTopLeft:[pad+inset(m),pad],paddingBottomRight:[pad,pad],maxZoom});
+// Selecting a person opens the detail column in the same commit, so refresh Leaflet's cached size before centring.
+const centerOn=(m:L.Map,latitude:number,longitude:number,zoom=18)=>m.invalidateSize({pan:false}).setView(m.unproject(m.project([latitude,longitude],zoom).subtract([inset(m)/2,0]),zoom),zoom);
 export type FarmBoundary={buffer_meters:number;south:number;west:number;north:number;east:number;centerLat:number;centerLon:number;radius_meters:number};
 export type MapSite='test'|'farm';
 export function FarmMap({points,selected,route,staff=[],english=false,cameras=[],activeCamera='',onMapPick,boundary,showBoundary=false,site,onSiteChange,farmBufferMeters=100}:{points:Point[];selected:string;route:Point[];staff?:{id:string;name:string}[];english?:boolean;cameras?:Camera[];activeCamera?:string;onMapPick?:(latitude:number,longitude:number)=>void;boundary?:FarmBoundary|null;showBoundary?:boolean;site?:MapSite;onSiteChange?:(site:MapSite)=>void;farmBufferMeters?:number}){
@@ -25,13 +30,13 @@ export function FarmMap({points,selected,route,staff=[],english=false,cameras=[]
   farmImage.current=new FarmImage();
   L.control.layers({'Uydu / Satellite':satellite,'Harita / Map':streets},{'Çiftlik görseli / Farm image':farmImage.current},{position:'topright'}).addTo(m);
   L.control.scale({imperial:false}).addTo(m);
-  layer.current=L.layerGroup().addTo(m);m.fitBounds(testBounds,{padding:[24,24]});
+  layer.current=L.layerGroup().addTo(m);fitVisible(m,testBounds,24);
   const resize=new ResizeObserver(()=>m.invalidateSize());resize.observe(el.current);
   return()=>{resize.disconnect();m.remove();map.current=null;layer.current=null;farmImage.current=null;};
  },[]);
- useEffect(()=>{const m=map.current;if(!m)return;if(activeSite==='farm'&&farmImage.current&&!m.hasLayer(farmImage.current))farmImage.current.addTo(m);m.fitBounds(activeSite==='farm'?farmBounds:testBounds,{padding:[24,24]});},[activeSite]);
+ useEffect(()=>{const m=map.current;if(!m)return;if(activeSite==='farm'&&farmImage.current&&!m.hasLayer(farmImage.current))farmImage.current.addTo(m);fitVisible(m,activeSite==='farm'?farmBounds:testBounds,24);},[activeSite]);
  useEffect(()=>{const m=map.current;if(!m||!onMapPick)return;const pick=(e:L.LeafletMouseEvent)=>onMapPick(e.latlng.lat,e.latlng.lng);m.on('click',pick);return()=>{m.off('click',pick)};},[onMapPick]);
- useEffect(()=>{const m=map.current;if(!m||!showBoundary)return;const active=activeSite==='farm'?farmPreviewBoundary(farmBufferMeters):boundary;if(!active)return;const bounds=L.latLngBounds([active.south,active.west],[active.north,active.east]);const label=activeSite==='farm'?(english?`Farm preview (+${active.buffer_meters} m)`:`Çiftlik önizlemesi (+${active.buffer_meters} m)`):(english?`Test boundary (+${active.buffer_meters} m)`:`Test alanı sınırı (+${active.buffer_meters} m)`);const rectangle=L.rectangle(bounds,{className:'farmBoundary',color:'#2c8f68',weight:3,dashArray:'8 6',fillColor:'#88d9b7',fillOpacity:.14}).bindTooltip(label).addTo(m);m.fitBounds(bounds,{padding:[55,55]});return()=>{rectangle.remove()};},[boundary,showBoundary,english,activeSite,farmBufferMeters]);
+ useEffect(()=>{const m=map.current;if(!m||!showBoundary)return;const active=activeSite==='farm'?farmPreviewBoundary(farmBufferMeters):boundary;if(!active)return;const bounds=L.latLngBounds([active.south,active.west],[active.north,active.east]);const label=activeSite==='farm'?(english?`Farm preview (+${active.buffer_meters} m)`:`Çiftlik önizlemesi (+${active.buffer_meters} m)`):(english?`Test boundary (+${active.buffer_meters} m)`:`Test alanı sınırı (+${active.buffer_meters} m)`);const rectangle=L.rectangle(bounds,{className:'farmBoundary',color:'#2c8f68',weight:3,dashArray:'8 6',fillColor:'#88d9b7',fillOpacity:.14}).bindTooltip(label).addTo(m);fitVisible(m,bounds,55);return()=>{rectangle.remove()};},[boundary,showBoundary,english,activeSite,farmBufferMeters]);
  useEffect(()=>{const m=map.current;if(!m)return;const g=L.layerGroup().addTo(m);for(const c of cameras){const chosen=c.id===activeCamera;L.circle([c.latitude,c.longitude],{radius:c.radius,color:chosen?'#e2a94d':'#487ca3',weight:chosen?3:1,fillOpacity:chosen?.15:.05}).bindTooltip(()=>{const label=document.createElement('span');label.textContent=c.name;return label}).addTo(g);}return()=>{g.remove()};},[cameras,activeCamera]);
  useEffect(()=>{
   const m=map.current,g=layer.current;if(!m||!g)return;g.clearLayers();
@@ -43,7 +48,7 @@ export function FarmMap({points,selected,route,staff=[],english=false,cameras=[]
    if(p.staff_id===selected)L.circle([p.latitude,p.longitude],{radius:p.accuracy,color:'#e2a94d',weight:1,fillOpacity:.12}).addTo(g);
   }
   const point=points.find(p=>p.staff_id===selected);
-  if(selected&&selected!==focused.current&&point){m.setView([point.latitude,point.longitude],18);focused.current=selected;}
+  if(selected&&selected!==focused.current&&point){centerOn(m,point.latitude,point.longitude);focused.current=selected;}
  },[points,selected,staff]);
  useEffect(()=>{
   const m=map.current;if(!m)return;const g=L.layerGroup().addTo(m);
@@ -65,9 +70,9 @@ export function FarmMap({points,selected,route,staff=[],english=false,cameras=[]
    if(!p)continue;const node=document.createElement('span');node.textContent=label;node.className='routeEndpoint '+kind;
    L.marker([p.latitude,p.longitude],{icon:L.divIcon({html:node,className:'routeEndpointMarker',iconSize:[58,20],iconAnchor:kind==='start'?[58,25]:[0,-6]}),zIndexOffset:300}).bindTooltip(new Date(p.measured_at).toISOString().replace('T',' ').replace('.000Z',' UTC')).addTo(g);
   }
-  if(trail.first)m.fitBounds(L.latLngBounds(trail.groups.flatMap(s=>s.points.map(p=>L.latLng(p.latitude,p.longitude)))),{padding:[60,60],maxZoom:19});
+  if(trail.first)fitVisible(m,L.latLngBounds(trail.groups.flatMap(s=>s.points.map(p=>L.latLng(p.latitude,p.longitude)))),60,19);
   return()=>{m.off('zoom viewreset moveend',alignGradients);for(const {node} of gradients)node.remove();g.remove()};
  },[trail,english]);
- function showPerson(){const p=points.find(p=>p.staff_id===selected);if(p)map.current?.setView([p.latitude,p.longitude],18);}
- return <><div className="map" ref={el}/><div className="mapActions"><button aria-pressed={activeSite==='test'} onClick={()=>{chooseSite('test');map.current?.fitBounds(testBounds,{padding:[24,24]})}}>{english?'Go to test site':'Test alanına git'}</button><button aria-pressed={activeSite==='farm'} onClick={()=>{chooseSite('farm');map.current?.fitBounds(farmBounds,{padding:[24,24]})}}>{english?'Go to farm':'Çiftliğe git'}</button><button disabled={!points.some(p=>p.staff_id===selected)} onClick={showPerson}>{english?'Go to person':'Personele git'}</button></div>{activeSite==='farm'&&<div className="mapPreviewNote">{english?'Farm image and boundary are a preview; live tracking remains at the test site.':'Çiftlik görseli ve sınırı önizlemedir; canlı takip test alanındadır.'}</div>}{trail.first&&<div className="routeLegend"><span>{english?'Start · 0%':'Başlangıç · %0'}</span><i style={{background:routeGradient}}/><span>{english?'End · 100%':'Bitiş · %100'}</span></div>}</>;
+ function showPerson(){const p=points.find(p=>p.staff_id===selected);if(p&&map.current)centerOn(map.current,p.latitude,p.longitude);}
+ return <><div className="map" ref={el}/><div className="mapActions"><button aria-pressed={activeSite==='test'} onClick={()=>{chooseSite('test');if(map.current)fitVisible(map.current,testBounds,24)}}>{english?'Go to test site':'Test alanına git'}</button><button aria-pressed={activeSite==='farm'} onClick={()=>{chooseSite('farm');if(map.current)fitVisible(map.current,farmBounds,24)}}>{english?'Go to farm':'Çiftliğe git'}</button><button disabled={!points.some(p=>p.staff_id===selected)} onClick={showPerson}>{english?'Go to person':'Personele git'}</button></div>{activeSite==='farm'&&<div className="mapPreviewNote">{english?'Farm image and boundary are a preview; live tracking remains at the test site.':'Çiftlik görseli ve sınırı önizlemedir; canlı takip test alanındadır.'}</div>}{trail.first&&<div className="routeLegend"><span>{english?'Start · 0%':'Başlangıç · %0'}</span><i style={{background:routeGradient}}/><span>{english?'End · 100%':'Bitiş · %100'}</span></div>}</>;
 }
