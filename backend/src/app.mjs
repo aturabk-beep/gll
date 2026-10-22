@@ -78,7 +78,7 @@ export async function buildApp({pool,origin,production=true,serveWeb=true,logger
   app.get('/api/session',{preHandler:admin},viewSession);
   app.post('/api/logout',{preHandler:admin},async(req,reply)=>{await pool.query('delete from private.sessions where token_hash=$1',[req.admin.token_hash]);reply.clearCookie(cookieName,{path:'/',secure:production,sameSite:'strict'});return {ok:true};});
   app.get('/api/admin/snapshot',{preHandler:admin},async()=>transaction(pool,'gulel_admin',async c=>{
-    const staff=await c.query("select id,name,created_at,lpad(pairing_code::text,4,'0') as pairing_code from public.staff order by name,id");
+    const staff=await c.query("select id,name,workplace,created_at,lpad(pairing_code::text,4,'0') as pairing_code from public.staff order by name,id");
     const devices=await c.query('select * from public.devices where not revoked');
     const settings=await c.query('select boundary_buffer_meters from public.farm_settings where id=true');
     // Keep live markers on the latest reliable fix. Noisy samples remain in
@@ -90,9 +90,9 @@ export async function buildApp({pool,origin,production=true,serveWeb=true,logger
     const boundary=farmBoundary(settings.rows[0]?.boundary_buffer_meters??100);
     return {staff:staff.rows,devices:devices.rows,points:points.rows.filter(point=>isWithinFarmBoundary(point,boundary)&&devices.rows.find(device=>device.id===point.device_id)?.at_farm!==false),boundary};
   }));
-  app.post('/api/admin/staff',{preHandler:admin,schema:{body:{type:'object',additionalProperties:false,required:['name'],properties:{name:{type:'string',minLength:1,maxLength:100}}}}},async req=>{
-    const name=req.body.name.trim();if(!name)throw error(400,'Name required');
-    return transaction(pool,'gulel_admin',async c=>(await c.query("insert into public.staff(name) values($1) returning id,name,created_at,lpad(pairing_code::text,4,'0') as pairing_code",[name])).rows[0]);
+  app.post('/api/admin/staff',{preHandler:admin,schema:{body:{type:'object',additionalProperties:false,required:['name'],properties:{name:{type:'string',minLength:1,maxLength:100},workplace:{type:'string',maxLength:100}}}}},async req=>{
+    const name=req.body.name.trim(),workplace=req.body.workplace?.trim()||null;if(!name)throw error(400,'Name required');
+    return transaction(pool,'gulel_admin',async c=>(await c.query("insert into public.staff(name,workplace) values($1,$2) returning id,name,workplace,created_at,lpad(pairing_code::text,4,'0') as pairing_code",[name,workplace])).rows[0]);
   });
   app.delete('/api/admin/staff/:id',{preHandler:admin,schema:{params:{type:'object',properties:{id:uuid},required:['id']}}},async req=>transaction(pool,'gulel_admin',async c=>{
     const removed=(await c.query('select public.delete_staff($1) as removed',[req.params.id])).rows[0].removed;

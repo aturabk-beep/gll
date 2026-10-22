@@ -17,7 +17,7 @@ export async function transaction(pool,role,fn){
   }catch(e){await client.query('rollback');throw e;}finally{client.release();}
 }
 export async function migrate(pool){
-  const migrations=['001_railway.sql','002_short_pair_codes.sql','003_heartbeat_interval.sql','004_cameras.sql','005_persistent_pairing_codes.sql','006_farm_boundary.sql','007_single_device_pairing.sql','008_location_privacy.sql','009_time_clock.sql','010_delete_staff.sql','011_delete_staff_rate_limits.sql','012_battery_profile.sql','013_random_pairing_codes.sql','014_location_push.sql','015_location_push_diagnostics.sql','016_location_push_device_error.sql'];
+  const migrations=['001_railway.sql','002_short_pair_codes.sql','003_heartbeat_interval.sql','004_cameras.sql','005_persistent_pairing_codes.sql','006_farm_boundary.sql','007_single_device_pairing.sql','008_location_privacy.sql','009_time_clock.sql','010_delete_staff.sql','011_delete_staff_rate_limits.sql','012_battery_profile.sql','013_random_pairing_codes.sql','014_location_push.sql','015_location_push_diagnostics.sql','016_location_push_device_error.sql','017_staff_workplace.sql'];
   await transaction(pool,null,async c=>{
     await c.query('select pg_advisory_xact_lock(71482001)');
     await c.query('create table if not exists public.gulel_migrations(version integer primary key, applied_at timestamptz not null default now())');

@@ -1,5 +1,9 @@
 export type Point={id:string;staff_id:string;device_id:string;measured_at:string;received_at:string;latitude:number;longitude:number;accuracy:number;battery:number|null;motion:string;clock_skew:boolean};
 export type Device={id:string;staff_id:string;revoked:boolean;last_seen:string|null;app_version:string|null;queue_count:number|null;dropped_count:number;location_enabled:boolean|null;clock_skew?:boolean;at_farm?:boolean|null;moving_seconds:number;stationary_seconds:number;heartbeat_seconds?:number;stationary_after:number};
+export const statusWords={
+ tr:{current:'Güncel',late:'Gecikmiş',missing:'Veri alınamıyor',noLocation:'Konum bekleniyor',inaccurate:'Düşük doğruluk',offsite:'Yerleşke dışında',unpaired:'Eşleşmemiş'},
+ en:{current:'Current',late:'Delayed',missing:'No communication',noLocation:'Waiting for location',inaccurate:'Low accuracy',offsite:'Off site',unpaired:'Not paired'},
+};
 export function elapsedAge(value:string|null|undefined,now=Date.now(),english=false){
  if(!value)return english?'Never':'Henüz yok';
  const measured=Date.parse(value);if(!Number.isFinite(measured))return english?'Never':'Henüz yok';

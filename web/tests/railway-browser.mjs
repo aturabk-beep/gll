@@ -15,7 +15,8 @@ try{
  const page=await browser.newPage({viewport:{width:1500,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(origin);await page.getByPlaceholder('E-posta').fill('test@example.invalid');await page.getByPlaceholder('Şifre').fill('Test-only-password-000!');await page.getByRole('button',{name:'Yönetici girişi'}).click();await page.getByRole('button',{name:'Çiftliğe git',exact:true}).waitFor();
  await page.waitForFunction(()=>Array.from(document.querySelectorAll('img.leaflet-tile')).some(img=>img.src.includes('arcgisonline.com')&&img.complete&&img.naturalWidth>0));
- page.once('dialog',d=>d.accept('TEST PERSONELİ — GERÇEK VERİ DEĞİL'));await page.getByRole('button',{name:/Personel ekle/}).click();await page.getByRole('button',{name:/TEST PERSONELİ/}).click();
+ await page.getByRole('button',{name:/Personel ekle/}).click();await page.getByLabel('Ad',{exact:true}).fill('TEST PERSONELİ');await page.getByLabel('Soyad',{exact:true}).fill('— GERÇEK VERİ DEĞİL');await page.getByLabel('Çalışma yeri',{exact:true}).fill('Test alanı');await page.getByRole('button',{name:'Personeli ekle',exact:true}).click();
+ assert.match(await page.locator('.addStaffCode code').textContent(),/^[0-9]{4}$/);await page.getByRole('button',{name:'Bitti',exact:true}).click();await page.getByRole('button',{name:/TEST PERSONELİ/}).click();
  await page.getByRole('button',{name:'Eşleştirme kodu',exact:true}).click();await page.locator('.pairCode code').waitFor();const code=await page.locator('.pairCode code').textContent();
  const token=randomBytes(32).toString('hex');
  const paired=await fetch(origin+'/api/device/pair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_code:code,p_token:token})});assert.equal(paired.status,200);const device=await paired.json();

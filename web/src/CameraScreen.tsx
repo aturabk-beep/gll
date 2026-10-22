@@ -5,8 +5,8 @@ import {cameraMatch,type Camera} from './cameras';
 import type {Point,Device} from './domain';
 type Draft=Omit<Camera,'id'>;
 const initial:Draft={name:'',latitude:39.89996,longitude:32.77371,radius:40,url:''};
-export function CameraScreen({staff,devices,points,now,english}:{staff:{id:string;name:string}[];devices:Device[];points:Point[];now:number;english:boolean}){
- const [cameras,setCameras]=useState<Camera[]>([]),[selected,setSelected]=useState(''),[person,setPerson]=useState(''),[draft,setDraft]=useState<Draft|null>(null),[editId,setEditId]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
+export function CameraScreen({staff,devices,points,now,english,focus}:{staff:{id:string;name:string;workplace?:string|null}[];devices:Device[];points:Point[];now:number;english:boolean;focus?:{camera:string;person:string}|null}){
+ const [cameras,setCameras]=useState<Camera[]>([]),[selected,setSelected]=useState(focus?.camera??''),[person,setPerson]=useState(focus?.person??''),[draft,setDraft]=useState<Draft|null>(null),[editId,setEditId]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const t=(tr:string,en:string)=>english?en:tr;
  const load=async()=>setCameras(await request<Camera[]>('/api/admin/cameras'));
  useEffect(()=>{let alive=true;request<Camera[]>('/api/admin/cameras').then(c=>{if(alive)setCameras(c)}).catch(e=>{if(alive)setError(e.message)});return()=>{alive=false}},[]);
@@ -19,7 +19,7 @@ export function CameraScreen({staff,devices,points,now,english}:{staff:{id:strin
  {!cameras.length&&<p>{t('Henüz kamera eklenmedi.','No cameras yet.')}</p>}
  {cameras.map(c=><button className={'person '+(selected===c.id?'chosen':'')} key={c.id} onClick={()=>{setSelected(c.id);setDraft(null)}}><b>{c.name}</b><span>{person?(match(c,person)?t('Konumla örtüşüyor','Location overlaps'):t('Güncel konum eşleşmesi yok','No current location match')):`${staff.filter(s=>match(c,s.id)).length} ${t('personel adayı','possible staff')}`}</span></button>)}
  </aside><section className="cameraMain">
- <div className="cameraMap mapWrap"><FarmMap staff={staff} points={points} selected={person} route={[]} english={english} cameras={draft?[...cameras.filter(c=>c.id!==editId),{...draft,id:'draft'}]:cameras} activeCamera={draft?'draft':selected} onMapPick={draft?(latitude,longitude)=>setDraft({...draft,latitude,longitude}):undefined}/>{draft&&<span className="mapHint">{t('Alan merkezini haritadan seç','Select the area centre on the map')}</span>}</div>
+ <div className="cameraMap mapWrap"><FarmMap staff={staff} points={points} devices={devices} now={now} selected={person} onSelect={setPerson} cameraLinks={draft?undefined:cameras} onCamera={(camera,staffId)=>{setSelected(camera.id);setPerson(staffId);}} route={[]} english={english} cameras={draft?[...cameras.filter(c=>c.id!==editId),{...draft,id:'draft'}]:cameras} activeCamera={draft?'draft':selected} onMapPick={draft?(latitude,longitude)=>setDraft({...draft,latitude,longitude}):undefined}/>{draft&&<span className="mapHint">{t('Alan merkezini haritadan seç','Select the area centre on the map')}</span>}</div>
  {draft?<form className="cameraForm" onSubmit={e=>{e.preventDefault();void run(async()=>{const c=await request<Camera>('/api/admin/cameras'+(editId?'/'+editId:''),editId?'PUT':'POST',draft);await load();setSelected(c.id);setDraft(null)})}}>
  <h2>{editId?t('Kamerayı düzenle','Edit camera'):t('Kamera ekle','Add camera')}</h2>
  <label>{t('Kamera adı','Camera name')}<input required maxLength={100} value={draft.name} onChange={e=>setDraft({...draft,name:e.target.value})}/></label>

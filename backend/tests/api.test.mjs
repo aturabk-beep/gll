@@ -176,6 +176,13 @@ test('retention cleans history, expired sessions and limits',async()=>{
  await pool.query("update public.locations set received_at=now()-interval '8 days'; update public.latest_locations set measured_at=now()-interval '8 days'");await prune(pool);
  assert.equal((await pool.query('select * from public.locations')).rows.length,0);assert.equal((await pool.query('select * from public.latest_locations')).rows.length,0);
 });
+test('optional workplace is trimmed, validated and returned; blank means none',async()=>{
+ const placed=await call('POST','/api/admin/staff',{name:'WORKPLACE TEST — NOT REAL DATA',workplace:'  Sera 2  '});assert.equal(placed.statusCode,200);assert.equal(placed.json().workplace,'Sera 2');assert.match(placed.json().pairing_code,/^[0-9]{4}$/);
+ const blank=await call('POST','/api/admin/staff',{name:'NO WORKPLACE TEST',workplace:'   '});assert.equal(blank.statusCode,200);assert.equal(blank.json().workplace,null);
+ assert.equal((await call('POST','/api/admin/staff',{name:'TOO LONG WORKPLACE',workplace:'x'.repeat(101)})).statusCode,400);
+ const people=(await call('GET','/api/admin/snapshot')).json().staff;
+ assert.equal(people.find(person=>person.id===placed.json().id).workplace,'Sera 2');assert.equal(people.find(person=>person.id===blank.json().id).workplace,null);
+});
 test('logout invalidates server-side session and cookie',async()=>{
  assert.equal((await call('POST','/api/logout',{})).statusCode,200);assert.equal((await call('GET','/api/session')).statusCode,401);
 });
